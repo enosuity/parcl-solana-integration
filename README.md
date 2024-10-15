@@ -2,11 +2,12 @@
 ## Installation
 
 ```bash
-npm install @parcl-oss/v3-sdk
+git clone https://github.com/enosuity/parcl-solana-integration.git
 
-or
+cd parcl-solana-integration
 
-yarn add @parcl-oss/v3-sdk
+npm install
+
 ```
 
 ## Usage
