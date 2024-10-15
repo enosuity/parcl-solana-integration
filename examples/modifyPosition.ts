@@ -1,6 +1,7 @@
-import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
+import { Connection, Keypair, clusterApiUrl, sendAndConfirmTransaction } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import bs58 from "bs58";
+
+// import bs58 from "bs58";
 import {
   ParclV3Sdk,
   getMarginAccountPda,
@@ -15,8 +16,14 @@ import Decimal from "decimal.js";
 import * as dotenv from "dotenv";
 dotenv.config();
 
+const fs = require('fs');
+
 (async function main() {
-  const signer = Keypair.fromSecretKey(bs58.decode(process.env.KEYPAIR as string));
+  // Load the keypair from the file
+  // Replace your wallet path here
+  const secretKey = JSON.parse(fs.readFileSync('/home/anuj/my-solana-wallet-mainnet.json', 'utf8'));
+  const signer = Keypair.fromSecretKey(new Uint8Array(secretKey));
+
   const rpcUrl = clusterApiUrl("mainnet-beta");
   const sdk = new ParclV3Sdk({ rpcUrl });
   // only live exchange is exchangeId=0
@@ -43,17 +50,24 @@ dotenv.config();
   if (!marketIds.includes(marketIdToTrade)) {
     marketIds.push(marketIdToTrade);
   }
+  
   const marketAddresses = marketIds.map((marketId) => getMarketPda(exchangeAddress, marketId)[0]);
   const marketAccounts = (await sdk.accountFetcher.getMarkets(marketAddresses)).filter(
     (market) => market != undefined
   );
+
+  console.log("=============90============", marketAccounts);
   if (marketAccounts.length !== marketAddresses.length) {
     throw new Error("Failed to fetch all provided markets");
   }
   const priceFeedAddresses = marketAccounts.map((market) => market!.account.priceFeed);
+  console.log("priceFeedAddresses =====> ", priceFeedAddresses);
+
+  
   const priceFeedAccounts = (await sdk.accountFetcher.getPythPriceFeeds(priceFeedAddresses)).filter(
     (market) => market != undefined
   );
+
   if (priceFeedAccounts.length !== priceFeedAddresses.length) {
     throw new Error("Failed to fetch all provided price feeds");
   }
@@ -106,5 +120,5 @@ dotenv.config();
     .buildSigned([signer], latestBlockhash);
   console.log((await connection.simulateTransaction(tx)).value);
   // send tx
-  // await sendAndConfirmTransaction(connection, tx, [signer]);
+  await sendAndConfirmTransaction(connection, tx, [signer]);
 })();
