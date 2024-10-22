@@ -43,17 +43,17 @@ const fs = require('fs');
     signer.publicKey
   );
 
+  
+  console.log('Maintain SOL Balance (to pay fee) Owner wallet Address :', signer.publicKey.toString);
+  console.log('Maintain Collateral Balance in signer TokenAccount :', signerTokenAccount.toString());
+
   const connection = new Connection(rpcUrl);
 
   // Check if the associated token account exists
   const tokenAccountInfo = await connection.getAccountInfo(signerTokenAccount);
-  console.log("tokenAccountInfo ======> ", tokenAccountInfo?.data.valueOf.toString());
-  console.log("exchange.collateralMint =====> ", exchange.collateralMint);
 
   if (!tokenAccountInfo) {
-    console.log("Associated Token Account not initialized. Creating...");
-
-    
+    console.log("Associated Token Account not initialized. Creating...");    
 
     // Create the associated token account if it doesn't exist
     const createTokenAccountIx = createAssociatedTokenAccountInstruction(
@@ -67,15 +67,12 @@ const fs = require('fs');
 
     const createTokenAccountTx = new Transaction()
                                   .add(createTokenAccountIx);
-                                  // .feePayer(signer.publicKey);
                                   
     
   //   // Sign and send the transaction to create the associated token account
     const signature = await sendAndConfirmTransaction(connection, createTokenAccountTx, [signer]);
     console.log("Token account created with transaction: ", signature);
   }
-
-
 
 
   // deposit $5.1 of margin collateral
@@ -160,9 +157,9 @@ const fs = require('fs');
     .buildSigned([signer], latestBlockhash);
     
   const tokenBalance = await connection.getTokenAccountBalance(signerTokenAccount);
-  console.log('signerTokenAccount :', signerTokenAccount.toString());
+  
 
-  console.log("tokenBalance : ", tokenBalance);
+  console.log("tokenBalance : ", tokenBalance.value);
 
   const requiredAmount = margin.valueOf();
   console.log("requiredAmount  =====> ", requiredAmount);
@@ -172,14 +169,14 @@ const fs = require('fs');
     return; // Exit if insufficient funds
   }
   
-  console.log("================= start ================= ")  ;
   const simulationResult = await connection.simulateTransaction(tx);
   if (simulationResult.value.err) {
     console.error("Transaction simulation failed:", simulationResult.value.err);
     console.log("Logs:", simulationResult.value.logs);
     return; // Exit if simulation fails
   }
-  console.log("================= end ================= ")  ;
   // send tx
-  await sendAndConfirmTransaction(connection, tx, [signer]);
+  const order = await sendAndConfirmTransaction(connection, tx, [signer]);
+  console.log("Placed Order: ", order);
+  console.log("Trade Done Successfully. Thank you");
 })();
